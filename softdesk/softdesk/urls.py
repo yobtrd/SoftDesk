@@ -1,11 +1,14 @@
 from django.contrib import admin
 from django.urls import include, path
+from issues.views import ContributorViewset, ProjectViewset
 from rest_framework import routers
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from user.views import UsersViewset
 
 router = routers.SimpleRouter()
-router.register('users', UsersViewset, basename='users')
+router.register('user', UsersViewset, basename='users')
+router.register('contributor', ContributorViewset, basename='contributors')
+router.register('project', ProjectViewset, basename='projects')
 
 urlpatterns = [
     path("admin/", admin.site.urls),
