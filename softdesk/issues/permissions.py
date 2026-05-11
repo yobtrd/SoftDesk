@@ -1,5 +1,5 @@
 from rest_framework.permissions import BasePermission
 
 
-class IsProjectAuthor(BasePermission):
+class IsRessourceAuthor(BasePermission):
     pass

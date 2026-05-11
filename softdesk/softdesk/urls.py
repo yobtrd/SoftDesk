@@ -1,6 +1,11 @@
 from django.contrib import admin
 from django.urls import include, path
-from issues.views import ContributorViewset, ProjectViewset
+from issues.views import (
+    CommentViewset,
+    ContributorViewset,
+    IssueViewset,
+    ProjectViewset,
+)
 from rest_framework import routers
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from user.views import UsersViewset
@@ -9,6 +14,8 @@ router = routers.SimpleRouter()
 router.register('user', UsersViewset, basename='users')
 router.register('contributor', ContributorViewset, basename='contributors')
 router.register('project', ProjectViewset, basename='projects')
+router.register('issue', IssueViewset, basename="issues")
+router.register('comment', CommentViewset, basename="comments")
 
 urlpatterns = [
     path("admin/", admin.site.urls),

@@ -27,7 +27,7 @@ class UserSerializer(ModelSerializer):
 
         if current_year() - value < 15:
             raise ValidationError(
-                {"year_of_birth": "15 ans minimum requis"}, code='underage'
+                {"year_of_birth": "15 ans minimum requis."}, code='underage'
             )
         return value
 
