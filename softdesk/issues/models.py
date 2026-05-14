@@ -58,7 +58,7 @@ class Issue(models.Model):
     )
     assignment = models.ForeignKey(
         'Contributor',
-        on_delete=models.PROTECT,
+        on_delete=models.CASCADE,
         related_name='assigned_contributor',
         verbose_name="Attribution",
     )
@@ -94,6 +94,9 @@ class Issue(models.Model):
 
 
 class Comment(models.Model):
+    uuid = models.UUIDField(
+        default=uuid.uuid4, editable=False, unique=True, db_index=True
+    )
     issue = models.ForeignKey(
         'Issue', on_delete=models.CASCADE, related_name="comments"
     )
@@ -106,4 +109,3 @@ class Comment(models.Model):
     description = models.TextField(
         max_length=2000, verbose_name="Contenu du commentaire", blank=False
     )
-    uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)

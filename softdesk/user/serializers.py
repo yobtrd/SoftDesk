@@ -3,7 +3,7 @@ from user.models import User
 from user.utils import current_year
 
 
-class UserSerializer(ModelSerializer):
+class UserCreationSerializer(ModelSerializer):
     """Serializer user with all model's fields and hashed password."""
 
     class Meta:
@@ -40,3 +40,19 @@ class UserSerializer(ModelSerializer):
         user.set_password(validated_data['password'])
         user.save()
         return user
+
+
+class UserListSerializer(ModelSerializer):
+
+    class Meta:
+        model = User
+        fields = ['id', 'username']
+
+
+class UserDetailSerializer(UserListSerializer):
+    class Meta(UserListSerializer.Meta):
+        fields = UserListSerializer.Meta.fields + [
+            'year_of_birth',
+            'can_be_contacted',
+            'can_data_be_shared',
+        ]

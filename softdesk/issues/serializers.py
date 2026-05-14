@@ -1,48 +1,38 @@
-from issues.fields import AssignmentUsernameField, ProjectNameField, UsernameField
 from issues.models import Comment, Contributor, Issue, Project, User
 from rest_framework.serializers import (
     CharField,
     ModelSerializer,
     PrimaryKeyRelatedField,
     ValidationError,
+    SerializerMethodField,
 )
 
 
 class ContributorSerializer(ModelSerializer):
 
-    user = UsernameField()
-    project = ProjectNameField()
+    user = PrimaryKeyRelatedField(queryset=User.objects.all())
+    username = CharField(source='user.username', read_only=True)
 
     class Meta:
         model = Contributor
-        fields = ['id', 'user', 'project']
-
-    def validate_user(self, username):
-        try:
-            return User.objects.get(username=username)
-        except User.DoesNotExist:
-            raise ValidationError(f"Il n'existe aucun utilisateur {username}")
-
-    def validate_project(self, name):
-        try:
-            return Project.objects.get(name=name)
-        except Project.DoesNotExist:
-            raise ValidationError(f"Il n'existe aucun projet intitulé {name}")
+        fields = ['id', 'user', 'username']
 
     def validate(self, data):
-        user = data['user']
-        project = data['project']
-        if Contributor.objects.filter(user=user, project=project).exists():
-            raise ValidationError({"user": f"{user} est déjà contributeur du projet."})
+        project = Project.objects.get(pk=self.context['view'].kwargs['project_pk'])
+        data['project'] = project
+
+        if Contributor.objects.filter(user=data['user'], project=project).exists():
+            raise ValidationError(
+                {"user": f"{data['user'].username} est déjà contributeur du projet."}
+            )
+
         return data
 
     def create(self, validated_data):
-        return Contributor.objects.create(
-            user=validated_data['user'], project=validated_data['project']
-        )
+        return Contributor.objects.create(**validated_data)
 
 
-class ProjectSerializer(ModelSerializer):
+class ProjectCreateSerializer(ModelSerializer):
 
     author = CharField(source='author.username', read_only=True)
     contributor = ContributorSerializer(
@@ -51,30 +41,84 @@ class ProjectSerializer(ModelSerializer):
 
     class Meta:
         model = Project
-        fields = ['id', 'name', 'author', 'contributor', 'description', 'type']
+        fields = [
+            'id',
+            'name',
+            'author',
+            'contributor',
+            'description',
+            'type',
+            'created_time',
+        ]
 
     def create(self, validated_data):
         user = self.context['request'].user
         project = Project.objects.create(author=user, **validated_data)
         Contributor.objects.get_or_create(user=user, project=project)
-        project.save()
         return project
 
 
-class IssueSerializer(ModelSerializer):
+class ProjectListSerializer(ModelSerializer):
 
-    project = ProjectNameField()
+    author = CharField(source='author.username', read_only=True)
+    issue_count = SerializerMethodField()
+
+    class Meta:
+        model = Project
+        fields = [
+            'id',
+            'name',
+            'author',
+            'type',
+            'issue_count',
+        ]
+
+    def get_issue_count(self, obj):
+        return len(obj.issues.all())
+
+
+class ProjectDetailSerializer(ModelSerializer):
+
+    author = CharField(source='author.username', read_only=True)
+    contributor_count = SerializerMethodField()
+    issue_count = SerializerMethodField()
+
+    class Meta:
+        model = Project
+        fields = [
+            'id',
+            'name',
+            'author',
+            'contributor_count',
+            'description',
+            'created_time',
+            'type',
+            'issue_count',
+        ]
+
+    def get_contributor_count(self, obj):
+        return len(obj.contributors.all())
+
+    def get_issue_count(self, obj):
+        return len(obj.issues.all())
+
+
+class IssueCreateSerializer(ModelSerializer):
+
     author = CharField(source='author.user.username', read_only=True)
-    assignment = AssignmentUsernameField(required=False)
+    assignment = PrimaryKeyRelatedField(
+        queryset=Contributor.objects.all(), required=False, allow_null=True
+    )
+    assignment_username = CharField(source='assignment.user.username', read_only=True)
 
     class Meta:
         model = Issue
         fields = [
             'id',
-            'project',
             'name',
             'author',
             'assignment',
+            'assignment_username',
             'created_time',
             'description',
             'statut',
@@ -82,53 +126,92 @@ class IssueSerializer(ModelSerializer):
             'tag',
         ]
 
-    def validate_project(self, name):
-        try:
-            return Project.objects.get(name=name)
-        except Project.DoesNotExist:
-            raise ValidationError(f"Il n'existe aucun projet intitulé {name}")
-
     def validate(self, data):
-        project = data['project']
-        assigned = data.get('assignment')
+        project = Project.objects.get(pk=self.context['view'].kwargs['project_pk'])
+        data['project'] = project
 
-        if assigned:
-            if not project.contributors.filter(user__username=assigned).exists():
+        if 'assignment' in data:
+            assignment = data['assignment']
+            if (
+                assignment
+                and not project.contributors.filter(pk=assignment.pk).exists()
+            ):
                 raise ValidationError(
                     {
-                        "assignment": f"Il n'existe aucun contributeur nommé {assigned}"
-                        " dans ce projet."
+                        "assignment": f"L'user nommé {assignment.user.username} "
+                        "n'est pas contributeur de ce projet."
                     }
                 )
-            data['assignment'] = project.contributors.get(user__username=assigned)
 
         return data
 
     def create(self, validated_data):
         user = self.context['request'].user
-        project = validated_data['project']
-        print("ca va planter")
-        author = Contributor.objects.get(user=user, project=project)
-        print("tu ne verras pas ce message")
+        author = Contributor.objects.get(user=user, project=validated_data['project'])
 
-        if not validated_data.get('assignment'):
+        if 'assignment' not in validated_data or validated_data['assignment'] is None:
             validated_data['assignment'] = author
 
         return Issue.objects.create(author=author, **validated_data)
 
 
+class IssueListSerializer(ModelSerializer):
+
+    class Meta:
+        model = Issue
+        fields = [
+            'id',
+            'name',
+            'statut',
+        ]
+
+
+class IssueDetailSerializer(ModelSerializer):
+
+    author = CharField(source='author.user.username', read_only=True)
+    assignment = CharField(source='assignment.user.username', read_only=True)
+    comment_count = SerializerMethodField()
+
+    class Meta:
+        model = Issue
+        fields = [
+            'id',
+            'name',
+            'author',
+            'assignment',
+            'description',
+            'created_time',
+            'statut',
+            'priority',
+            'tag',
+            'comment_count',
+        ]
+
+    def get_comment_count(self, obj):
+        return len(obj.comments.all())
+
+
 class CommentSerializer(ModelSerializer):
 
-    issue = PrimaryKeyRelatedField(queryset=Issue.objects.all())
     author = CharField(source='author.user.username', read_only=True)
     uuid = PrimaryKeyRelatedField(read_only=True)
 
     class Meta:
         model = Comment
-        fields = ['issue', 'uuid', 'author', 'created_time', 'description']
+        fields = ['uuid', 'author', 'created_time', 'description']
 
     def create(self, validated_data):
         user = self.context['request'].user
-        issue = validated_data['issue']
+        issue = Issue.objects.get(pk=self.context['view'].kwargs['issue_pk'])
         author = Contributor.objects.get(user=user, project=issue.project)
-        return Comment.objects.create(author=author, **validated_data)
+        return Comment.objects.create(author=author, issue=issue, **validated_data)
+
+
+class CommentListSerializer(ModelSerializer):
+
+    uuid = PrimaryKeyRelatedField(read_only=True)
+    author = CharField(source='author.user.username', read_only=True)
+
+    class Meta:
+        model = Comment
+        fields = ['uuid', 'author', 'description']
