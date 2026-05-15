@@ -154,14 +154,24 @@ class IssueCreateSerializer(ModelSerializer):
 
         return Issue.objects.create(author=author, **validated_data)
 
+    def update(self, instance, validated_data):
+        if validated_data.get('assigment') is None:
+            validated_data['assignment'] = instance.author
+        return super().update(instance, validated_data)
+
 
 class IssueListSerializer(ModelSerializer):
+
+    author = CharField(source='author.user.username', read_only=True)
+    assignment = CharField(source='assignment.user.username', read_only=True)
 
     class Meta:
         model = Issue
         fields = [
             'id',
             'name',
+            'author',
+            'assignment',
             'statut',
         ]
 

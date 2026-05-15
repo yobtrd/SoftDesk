@@ -27,7 +27,11 @@ class UserCreationSerializer(ModelSerializer):
 
         if current_year() - value < 15:
             raise ValidationError(
-                {"year_of_birth": "15 ans minimum requis."}, code='underage'
+                {
+                    "year_of_birth": "Seul les utilisateurs de plus de 15 ans "
+                    "peuvent créer un compte."
+                },
+                code='underage',
             )
         return value
 

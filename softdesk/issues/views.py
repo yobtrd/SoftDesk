@@ -1,3 +1,5 @@
+from rest_framework.permissions import IsAuthenticated, OR
+from issues.permissions import IsAuthor, IsContributor, IsProjectAuthor, IsSelf
 from issues.models import Comment, Contributor, Issue, Project
 from issues.serializers import (
     ContributorSerializer,
@@ -21,22 +23,35 @@ class MultipleSerializerMixin:
     detail_serializer_class = None
 
     def get_serializer_class(self):
-        if self.action in ['create', 'update', 'partial']:
+        if self.action in ['create', 'update', 'partial_update']:
             return self.create_serializer_class
         elif self.action == 'list':
             return self.list_serializer_class
         elif self.action == 'retrieve':
             return self.detail_serializer_class
+        return super().get_serializer_class()
 
 
-class ProjectViewset(MultipleSerializerMixin, ModelViewSet):
+class BasePermissionViewset(ModelViewSet):
+
+    def get_permissions(self):
+        if self.action in ['update', 'partial_update', 'destroy']:
+            return [IsAuthenticated(), IsAuthor()]
+        return [IsAuthenticated()]
+
+
+class ProjectViewset(MultipleSerializerMixin, BasePermissionViewset, ModelViewSet):
 
     create_serializer_class = ProjectCreateSerializer
     list_serializer_class = ProjectListSerializer
     detail_serializer_class = ProjectDetailSerializer
 
     model = Project
-    queryset = Project.objects.all().prefetch_related('contributors', 'issues')
+
+    def get_queryset(self):
+        return Project.objects.filter(
+            contributors__user=self.request.user
+        ).prefetch_related('contributors', 'issues')
 
 
 class ContributorViewset(ModelViewSet):
@@ -47,8 +62,15 @@ class ContributorViewset(ModelViewSet):
     def get_queryset(self):
         return Contributor.objects.filter(project_id=self.kwargs['project_pk'])
 
+    def get_permissions(self):
+        if self.action in ['create', 'update', 'partial_update']:
+            return [IsAuthenticated(), IsProjectAuthor()]
+        elif self.action == 'destroy':
+            return [IsAuthenticated(), OR(IsProjectAuthor(), IsSelf())]
+        return [IsAuthenticated(), IsContributor()]
 
-class IssueViewset(MultipleSerializerMixin, ModelViewSet):
+
+class IssueViewset(MultipleSerializerMixin, BasePermissionViewset, ModelViewSet):
 
     create_serializer_class = IssueCreateSerializer
     list_serializer_class = IssueListSerializer
@@ -61,8 +83,13 @@ class IssueViewset(MultipleSerializerMixin, ModelViewSet):
             project_id=self.kwargs['project_pk']
         ).prefetch_related('comments')
 
+    def get_permissions(self):
+        if self.action in ['create', 'list', 'retrieve']:
+            return [IsAuthenticated(), IsContributor()]
+        return super().get_permissions()
 
-class CommentViewset(ModelViewSet):
+
+class CommentViewset(BasePermissionViewset, ModelViewSet):
 
     serializer_class = CommentSerializer
     list_serializer_class = CommentListSerializer
@@ -71,9 +98,17 @@ class CommentViewset(ModelViewSet):
     lookup_field = 'uuid'
 
     def get_queryset(self):
-        return Comment.objects.filter(issue=self.kwargs['issue_pk'])
+        return Comment.objects.filter(
+            issue__pk=self.kwargs['issue_pk'],
+            issue__project_id=self.kwargs['project_pk'],
+        )
 
     def get_serializer_class(self):
         if self.action == 'list':
             return self.list_serializer_class
         return self.serializer_class
+
+    def get_permissions(self):
+        if self.action in ['create', 'list', 'retrieve']:
+            return [IsAuthenticated(), IsContributor()]
+        return super().get_permissions()
