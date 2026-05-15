@@ -5,6 +5,8 @@ from user.models import User
 
 
 class Project(models.Model):
+    """Software project with contributors, type classification and metadata."""
+
     name = models.CharField(max_length=100, unique=True, verbose_name="Nom du projet")
     author = models.ForeignKey(
         User,
@@ -32,6 +34,11 @@ class Project(models.Model):
 
 
 class Contributor(models.Model):
+    """Represents project contributors through a junction table.
+
+    Creates a many-to-many relationship between User and Project
+    """
+
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -44,6 +51,8 @@ class Contributor(models.Model):
 
 
 class Issue(models.Model):
+    """Technical issue or task within a Project."""
+
     project = models.ForeignKey(
         'Project', on_delete=models.CASCADE, related_name='issues'
     )
@@ -66,7 +75,7 @@ class Issue(models.Model):
     description = models.TextField(
         max_length=1500, verbose_name="Description du problème"
     )
-    statut = models.CharField(
+    status = models.CharField(
         max_length=11,
         choices=[
             ('TODO', 'To do'),
@@ -94,6 +103,8 @@ class Issue(models.Model):
 
 
 class Comment(models.Model):
+    """User comment attached to an Issue, identified by UUID."""
+
     uuid = models.UUIDField(
         default=uuid.uuid4, editable=False, unique=True, db_index=True
     )

@@ -4,6 +4,10 @@ from rest_framework.exceptions import NotFound
 
 
 class IsContributor(BasePermission):
+    """Allows access only to project contributors.
+    Validates the project endpoint beforehand and returns a 404 if it does not exist.
+    """
+
     message = "Vous devez être contributeur pour créer ou accéder aux ressources."
 
     def has_permission(self, request, view):
@@ -18,6 +22,8 @@ class IsContributor(BasePermission):
 
 
 class IsAuthor(BasePermission):
+    """Allows access only to ressource's author."""
+
     message = "Vous devez être l'auteur de cette ressource pour la modifier."
 
     def has_object_permission(self, request, view, obj):
@@ -27,6 +33,8 @@ class IsAuthor(BasePermission):
 
 
 class IsProjectAuthor(BasePermission):
+    """Allows access to contributor ressource only to project author."""
+
     message = "Seul l'auteur du projet peut ajouter ou modifier les contributeurs."
 
     def has_permission(self, request, view):
@@ -35,5 +43,7 @@ class IsProjectAuthor(BasePermission):
 
 
 class IsSelf(BasePermission):
+    """Allows access only to user that match resource's user."""
+
     def has_object_permission(self, request, view, obj):
         return obj.user == request.user

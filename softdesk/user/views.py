@@ -3,27 +3,28 @@ from rest_framework.viewsets import ModelViewSet
 from user.models import User
 from user.permissions import IsSelf
 from user.serializers import (
-    UserCreationSerializer,
+    UserBaseSerializer,
     UserListSerializer,
-    UserDetailSerializer,
 )
 
 
 class UsersViewset(ModelViewSet):
     """Viewset for user's account, with specific permissions."""
 
+    serializer_class = UserBaseSerializer
     model = User
     queryset = User.objects.all()
 
     def get_serializer_class(self):
-        if self.action in ['create', 'update', 'partial_update']:
-            return UserCreationSerializer
-        elif self.action == 'list':
+        """Select serializer based on current action."""
+
+        if self.action == 'list':
             return UserListSerializer
-        elif self.action == 'retrieve':
-            return UserDetailSerializer
+        return super().get_serializer_class()
 
     def get_permissions(self):
+        """Dynamically assign permissions based on view action."""
+
         if self.action == 'create':
             return []
         elif self.action == "list":

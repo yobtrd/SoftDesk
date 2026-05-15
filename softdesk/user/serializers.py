@@ -3,8 +3,11 @@ from user.models import User
 from user.utils import current_year
 
 
-class UserCreationSerializer(ModelSerializer):
-    """Serializer user with all model's fields and hashed password."""
+class UserBaseSerializer(ModelSerializer):
+    """Base serializer for User model with full field handling.
+
+    Provides validation, creation and password handling for User instances.
+    """
 
     class Meta:
         model = User
@@ -19,7 +22,8 @@ class UserCreationSerializer(ModelSerializer):
         extra_kwargs = {'password': {'write_only': True}}
 
     def validate_year_of_birth(self, value):
-        """Check the year of birth, except for administrators."""
+        """Verifies the user's age, except for administrators."""
+
         if value is None:
             if not self.context['request'].user.is_superuser:
                 raise ValidationError({"year_of_birth": "Champ obligatoire"})
@@ -36,7 +40,8 @@ class UserCreationSerializer(ModelSerializer):
         return value
 
     def create(self, validated_data):
-        """Create a user with hashed password."""
+        """Create user with hashed password and optional fields."""
+
         user = User(
             username=validated_data['username'],
             year_of_birth=validated_data['year_of_birth'],
@@ -47,16 +52,8 @@ class UserCreationSerializer(ModelSerializer):
 
 
 class UserListSerializer(ModelSerializer):
+    """Minimal serializer for User listing operations."""
 
     class Meta:
         model = User
         fields = ['id', 'username']
-
-
-class UserDetailSerializer(UserListSerializer):
-    class Meta(UserListSerializer.Meta):
-        fields = UserListSerializer.Meta.fields + [
-            'year_of_birth',
-            'can_be_contacted',
-            'can_data_be_shared',
-        ]

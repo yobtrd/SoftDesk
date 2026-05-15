@@ -9,6 +9,7 @@ from rest_framework.serializers import (
 
 
 class ContributorSerializer(ModelSerializer):
+    """Handles validation and contributor assignment with their username display."""
 
     user = PrimaryKeyRelatedField(queryset=User.objects.all())
     username = CharField(source='user.username', read_only=True)
@@ -18,6 +19,8 @@ class ContributorSerializer(ModelSerializer):
         fields = ['id', 'user', 'username']
 
     def validate(self, data):
+        """Prevents a user from being added twice as a contributor."""
+
         project = Project.objects.get(pk=self.context['view'].kwargs['project_pk'])
         data['project'] = project
 
@@ -25,14 +28,14 @@ class ContributorSerializer(ModelSerializer):
             raise ValidationError(
                 {"user": f"{data['user'].username} est déjà contributeur du projet."}
             )
-
         return data
-
-    def create(self, validated_data):
-        return Contributor.objects.create(**validated_data)
 
 
 class ProjectCreateSerializer(ModelSerializer):
+    """Handles project creation with automatic contributor assignment.
+
+    Automatically assigns requesting user as both author and first contributor.
+    """
 
     author = CharField(source='author.username', read_only=True)
     contributor = ContributorSerializer(
@@ -52,13 +55,20 @@ class ProjectCreateSerializer(ModelSerializer):
         ]
 
     def create(self, validated_data):
+        """Assigns requesting user as both author and first contributor."""
+
         user = self.context['request'].user
         project = Project.objects.create(author=user, **validated_data)
-        Contributor.objects.get_or_create(user=user, project=project)
+        Contributor.objects.create(user=user, project=project)
         return project
 
 
 class ProjectListSerializer(ModelSerializer):
+    """Provides lightweight project listing with essential metadata.
+
+    Exposes minimal project details including prefetched issue count
+    for efficient UI display.
+    """
 
     author = CharField(source='author.username', read_only=True)
     issue_count = SerializerMethodField()
@@ -78,6 +88,11 @@ class ProjectListSerializer(ModelSerializer):
 
 
 class ProjectDetailSerializer(ModelSerializer):
+    """Comprehensive project representation with detailed metrics.
+
+    Exposes full project details including prefetched contributor
+    count and issue count.
+    """
 
     author = CharField(source='author.username', read_only=True)
     contributor_count = SerializerMethodField()
@@ -104,6 +119,12 @@ class ProjectDetailSerializer(ModelSerializer):
 
 
 class IssueCreateSerializer(ModelSerializer):
+    """Handles issue creation with automatic author assignment and contributor
+    validation.
+
+    Validates that assigned contributor belongs to project. Defaults assignment to
+    author if unspecified.
+    """
 
     author = CharField(source='author.user.username', read_only=True)
     assignment = PrimaryKeyRelatedField(
@@ -121,12 +142,13 @@ class IssueCreateSerializer(ModelSerializer):
             'assignment_username',
             'created_time',
             'description',
-            'statut',
+            'status',
             'priority',
             'tag',
         ]
 
     def validate(self, data):
+        """Verify that the designated contributor is part of the project."""
         project = Project.objects.get(pk=self.context['view'].kwargs['project_pk'])
         data['project'] = project
 
@@ -146,6 +168,10 @@ class IssueCreateSerializer(ModelSerializer):
         return data
 
     def create(self, validated_data):
+        """Assigns requesting user as both author and assigned contributor
+        if no assigment specify.
+        """
+
         user = self.context['request'].user
         author = Contributor.objects.get(user=user, project=validated_data['project'])
 
@@ -155,12 +181,17 @@ class IssueCreateSerializer(ModelSerializer):
         return Issue.objects.create(author=author, **validated_data)
 
     def update(self, instance, validated_data):
-        if validated_data.get('assigment') is None:
+        """Ensures that the author remains the assigned contributor
+        if one is not specified.
+        """
+
+        if validated_data.get('assignment') is None:
             validated_data['assignment'] = instance.author
         return super().update(instance, validated_data)
 
 
 class IssueListSerializer(ModelSerializer):
+    """Provides lightweight issue listing with essential metadata."""
 
     author = CharField(source='author.user.username', read_only=True)
     assignment = CharField(source='assignment.user.username', read_only=True)
@@ -172,11 +203,15 @@ class IssueListSerializer(ModelSerializer):
             'name',
             'author',
             'assignment',
-            'statut',
+            'status',
         ]
 
 
 class IssueDetailSerializer(ModelSerializer):
+    """Comprehensive issue representation with detailed metrics.
+
+    Exposes full issue details includind prefetched comments counts.
+    """
 
     author = CharField(source='author.user.username', read_only=True)
     assignment = CharField(source='assignment.user.username', read_only=True)
@@ -191,7 +226,7 @@ class IssueDetailSerializer(ModelSerializer):
             'assignment',
             'description',
             'created_time',
-            'statut',
+            'status',
             'priority',
             'tag',
             'comment_count',
@@ -202,6 +237,11 @@ class IssueDetailSerializer(ModelSerializer):
 
 
 class CommentSerializer(ModelSerializer):
+    """Handles comment creation linked to specific issue with author auto-assignment.
+    Comprehensive comment representation with detailed metadata.
+
+    Uses UUID for reference.
+    """
 
     author = CharField(source='author.user.username', read_only=True)
     uuid = PrimaryKeyRelatedField(read_only=True)
@@ -211,6 +251,8 @@ class CommentSerializer(ModelSerializer):
         fields = ['uuid', 'author', 'created_time', 'description']
 
     def create(self, validated_data):
+        """Assigns requesting user as author, checks context data before creation."""
+
         user = self.context['request'].user
         issue = Issue.objects.get(pk=self.context['view'].kwargs['issue_pk'])
         author = Contributor.objects.get(user=user, project=issue.project)
@@ -218,6 +260,7 @@ class CommentSerializer(ModelSerializer):
 
 
 class CommentListSerializer(ModelSerializer):
+    """Provides lightweight comment listing with essential metadata."""
 
     uuid = PrimaryKeyRelatedField(read_only=True)
     author = CharField(source='author.user.username', read_only=True)
