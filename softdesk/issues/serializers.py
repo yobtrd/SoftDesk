@@ -1,4 +1,5 @@
-from issues.models import Comment, Contributor, Issue, Project, User
+from issues.models import Comment, Contributor, Issue, Project
+from users.models import User
 from rest_framework.serializers import (
     CharField,
     ModelSerializer,
@@ -21,7 +22,7 @@ class ContributorSerializer(ModelSerializer):
     def validate(self, data):
         """Prevents a user from being added twice as a contributor."""
 
-        project = Project.objects.get(pk=self.context['view'].kwargs['project_pk'])
+        project = Project.objects.get(pk=self.context['view'].kwargs['projects_pk'])
         data['project'] = project
 
         if Contributor.objects.filter(user=data['user'], project=project).exists():
@@ -149,7 +150,7 @@ class IssueCreateSerializer(ModelSerializer):
 
     def validate(self, data):
         """Verify that the designated contributor is part of the project."""
-        project = Project.objects.get(pk=self.context['view'].kwargs['project_pk'])
+        project = Project.objects.get(pk=self.context['view'].kwargs['projects_pk'])
         data['project'] = project
 
         if 'assignment' in data:
@@ -160,8 +161,8 @@ class IssueCreateSerializer(ModelSerializer):
             ):
                 raise ValidationError(
                     {
-                        "assignment": f"L'user nommé {assignment.user.username} "
-                        "n'est pas contributeur de ce projet."
+                        "assignment": "Cet ID ne correspond a aucun contributeur "
+                        "du projet."
                     }
                 )
 
@@ -254,7 +255,7 @@ class CommentSerializer(ModelSerializer):
         """Assigns requesting user as author, checks context data before creation."""
 
         user = self.context['request'].user
-        issue = Issue.objects.get(pk=self.context['view'].kwargs['issue_pk'])
+        issue = Issue.objects.get(pk=self.context['view'].kwargs['issues_pk'])
         author = Contributor.objects.get(user=user, project=issue.project)
         return Comment.objects.create(author=author, issue=issue, **validated_data)
 

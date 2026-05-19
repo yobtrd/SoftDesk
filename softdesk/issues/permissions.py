@@ -11,7 +11,7 @@ class IsContributor(BasePermission):
     message = "Vous devez être contributeur pour créer ou accéder aux ressources."
 
     def has_permission(self, request, view):
-        project_pk = view.kwargs.get('project_pk')
+        project_pk = view.kwargs.get('projects_pk')
 
         try:
             Project.objects.get(pk=project_pk)
@@ -38,7 +38,7 @@ class IsProjectAuthor(BasePermission):
     message = "Seul l'auteur du projet peut ajouter ou modifier les contributeurs."
 
     def has_permission(self, request, view):
-        project_pk = view.kwargs.get('project_pk')
+        project_pk = view.kwargs.get('projects_pk')
         return Project.objects.filter(pk=project_pk, author=request.user).exists()
 
 

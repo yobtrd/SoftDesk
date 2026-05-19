@@ -4,34 +4,32 @@ API RESTful sécurisée permettant à des équipes de faire remonter des problè
 
 ## Fonctionnalités
 
-- **Gestion hiérarchique** : Projets > Issues > Commentaires avec routes imbriquées.
-- **Workflow modulaire** : Attribution flexible avec contributeurs multiples  
-- **Sécurité renforcée** : Permissions granulaires (auteur/contributeur), 
-    avec accès unique des ressources aux contributeurs  
+- **Gestion hiérarchique** : Projets > Issues > Commentaires avec routes imbriquées ;
+- **Workflow modulaire** : Attribution flexible avec contributeurs multiples ; 
+- **Sécurité renforcée** : Permissions granulaires (auteur/contributeur), avec accès unique des ressources aux contributeurs ; 
 - **Gestion de projets** : 
-    - Création avec modération par auteur original
-    - Gestion par type (Back-end, Front-end, Android, iOS)
+    - Création avec modération par auteur original ;
+    - Gestion par type (Back-end, Front-end, Android, iOS) ;
 - **Signalement technique**: 
-    - Création d'issues (problèmes ou tâches) avec attribution dynamique aux contributeurs.
-    - Gestion par priorités (High, Medium, Low), tags (Bug, fonctionnalité, tâches),  
-        et statut (To do, In progress, Finished,).
+    - Création d'issues (problèmes ou tâches) avec attribution dynamique aux contributeurs ;
+    - Gestion par priorités (High, Medium, Low), tags (Bug, fonctionnalité, tâches) et statut (To do, In progress, Finished).
 
 ## Conformité 
 
 - **OWASP** : 
-    - Authentification avec JWT token et refresh
-    - Permissions hiérarchiques
-    - Filtrage QuerySet systématique
+    - Authentification avec JWT token et refresh ;
+    - Permissions hiérarchiques ;
+    - Filtrage QuerySet systématique.
 
 - **Normes RGPD** : 
-    - Vérification de l'âge des utilisateurs lors de l'inscription
-    - Choix de confidentialités
-    - Droit à l'oubli lors de la suppression du compte
+    - Vérification de l'âge des utilisateurs lors de l'inscription ;
+    - Choix de confidentialités ;
+    - Droit à l'oubli lors de la suppression du compte.
 
 - **Green Code**:
-    - Sérialisation dynamique suivant les actions
-    - Faible imbrication des ressources
-    - Pagination des résultats
+    - Sérialisation dynamique suivant les actions ;
+    - Faible niveau d'imbrication des ressources ;
+    - Pagination des résultats.
 
 ## Stack
 
@@ -44,7 +42,7 @@ API RESTful sécurisée permettant à des équipes de faire remonter des problè
 ## Prérequis
 
 - Python `3.8+` (version 3.13 conseillé pour une compatibilité optimale) ;
-- (Optionnel) Git pour cloner le dépôt ;
+- (Optionnel) Git pour cloner le dépôt.
 
 ## Installation
 
@@ -66,7 +64,7 @@ uv sync
 source .venv/bin/activate # macOS et linux
 .venv\Scripts\activate # windows
 ```
-- Déplacer vous dans le dossier principal de l'application (`softdesk/sofdesk`) :
+- Déplacer vous dans le dossier principal de l'application (`softdesk/softdesk`) :
 ```bash
 cd softdesk
 ```
@@ -97,9 +95,9 @@ Pour en obtenir un et l'utiliser :
 ### Permissions
 
 - L'utilisateur courant doit être un contributeur du projet pour y accéder et accéder aux ressources associées (issues et commentaires).
-- Seul l'auteur d'une ressource est autorisé à la supprimer ou à l'utiliser.
-- Les utilisateurs authentifiés ont accès à la liste des utilisateurs (uniquement `id` et `username`) pour l'ajout de contributeur, mais pas aux détails d'un utilisateur.
-- Seul l'auteur d'un projet peut ajouter un contributeur au projet ; il est également le seul avec le contributeur en question à pouvoir le supprimer.
+- Seul l'auteur d'une ressource est autorisé à la supprimer ou à l'utiliser ;
+- Les utilisateurs authentifiés ont accès à la liste des utilisateurs (uniquement `id` et `username`) pour l'ajout de contributeur, mais pas aux détails d'un utilisateur ;
+- Seul l'auteur d'un projet peut ajouter un contributeur au projet ; il est également le seul avec le contributeur en question à pouvoir le supprimer ;
 - L'ensemble des ressources restent accessibles aux administrateurs via l'interface administrateur Django.
 
 ### Endpoints
@@ -109,24 +107,24 @@ Les principaux endpoints sont les suivants :
 
 | méthode   | Endpoint     | Description   |
 |-----------|--------------|---------------|
-POST | /api/user/ | Créer un compte utilisateur |
-GET | /api/user/ | Liste les utilisateurs enregistrés |
-GET | /api/project/ | Liste les projets auxquels l'utilisateur courant est contributeur |
-POST | /api/project/ | Créer un nouveau projet dont l'utilisateur courant sera auteur et contributeur |
-GET | /api/project/{id_project}/ | Détail d'un projet spécifique |
-POST | /api/project{id_project}/contributor/ | Ajouter un contributeur au projet |
-POST | /api/project/{id_project}/issue | Créer une nouvelle tâche ou problème (issue) dans un projet* |
-GET | /api/project/{id_project}/issue/{id_issue} | Détail d'une issue spécifique |
-POST | /api/project/{id_project}/issue/{id_issue}/comment/ | Créer un nouveau commentaire dans une issue |
-GET | /api/project/{id_project}/issue/{id_issue}/comment/{uuid_comment}/ | Voir un commentaire spécifique |
+POST | /api/users/ | Créer un compte utilisateur |
+GET | /api/users/ | Liste les utilisateurs enregistrés |
+GET | /api/projects/ | Liste les projets auxquels l'utilisateur courant est contributeur |
+POST | /api/projects/ | Créer un nouveau projet dont l'utilisateur courant sera auteur et contributeur |
+GET | /api/projects/{id_project}/ | Détail d'un projet spécifique |
+POST | /api/projects/{id_project}/contributors/ | Ajouter un contributeur au projet |
+POST | /api/projects/{id_project}/issues/ | Créer une nouvelle tâche ou problème (issue) dans un projet* |
+GET | /api/projects/{id_project}/issues/{id_issue}/ | Détail d'une issue spécifique |
+POST | /api/projects/{id_project}/issues/{id_issue}/comments/ | Créer un nouveau commentaire dans une issue |
+GET | /api/projects/{id_project}/issues/{id_issue}/comments/{uuid_comment}/ | Voir un commentaire spécifique |
 
-*Le payload `assignment`avec l'ID d'un contributeur peut être renseigné pour assigner un contributeur du projet à cette issue.
+*Le payload `assignment` avec l'ID d'un contributeur peut être renseigné pour assigner un contributeur du projet à cette issue.
 
 ### Exemples
 
 #### Pour créer un nouveau projet :
 
-**Endpoint** : `http://127.0.0.1:8000/api/project/`  
+**Endpoint** : `http://127.0.0.1:8000/api/projects/`  
 **Méthode** : POST  
 **Payload** :  
 ```json
@@ -144,7 +142,7 @@ GET | /api/project/{id_project}/issue/{id_issue}/comment/{uuid_comment}/ | Voir 
 
 #### Pour créer une nouvelle issue :  
 
-**Endpoint** : `http://127.0.0.1:8000/api/project/{id_project}/issue/`  
+**Endpoint** : `http://127.0.0.1:8000/api/projects/{id_project}/issues/`  
 **Méthode** : POST  
 **Payload** :  
 ```json
@@ -153,7 +151,7 @@ GET | /api/project/{id_project}/issue/{id_issue}/comment/{uuid_comment}/ | Voir 
     "description": "Description détaillée",
     "priority": "HIGH",
     "tag": "BUG",
-    "assignment":"Vide ou ID d'un contributeur du projet"
+    "assignment":"Null ou ID d'un contributeur du projet"
 }
 ```
 **Choix de priorité valide** :  

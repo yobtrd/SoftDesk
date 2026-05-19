@@ -1,7 +1,7 @@
 import uuid
 
 from django.db import models
-from user.models import User
+from users.models import User
 
 
 class Project(models.Model):
@@ -10,7 +10,8 @@ class Project(models.Model):
     name = models.CharField(max_length=100, unique=True, verbose_name="Nom du projet")
     author = models.ForeignKey(
         User,
-        on_delete=models.PROTECT,
+        on_delete=models.SET_NULL,
+        null=True,
         related_name='authored_projects',
         verbose_name="Auteur du projet",
     )

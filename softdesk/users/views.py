@@ -1,8 +1,8 @@
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.viewsets import ModelViewSet
-from user.models import User
-from user.permissions import IsSelf
-from user.serializers import (
+from users.models import User
+from users.permissions import IsSelf
+from users.serializers import (
     UserBaseSerializer,
     UserListSerializer,
 )

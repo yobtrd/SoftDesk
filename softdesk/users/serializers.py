@@ -1,6 +1,6 @@
 from rest_framework.serializers import ModelSerializer, ValidationError
-from user.models import User
-from user.utils import current_year
+from users.models import User
+from users.utils import current_year
 
 
 class UserBaseSerializer(ModelSerializer):

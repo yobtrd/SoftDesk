@@ -73,7 +73,7 @@ class ProjectViewset(MultipleSerializerMixin, BasePermissionViewset, ModelViewSe
 class ContributorViewset(ModelViewSet):
     """Manages contributors within specific projects with granular permission control.
 
-    Queryset automatically scoped to contributors of specified project via project_pk,
+    Queryset automatically scoped to contributors of specified project via projects_pk,
     ensuring data isolation between projects.
     """
 
@@ -81,8 +81,8 @@ class ContributorViewset(ModelViewSet):
     model = Contributor
 
     def get_queryset(self):
-        """Retrieves only the project contributors via project_pk"""
-        return Contributor.objects.filter(project_id=self.kwargs['project_pk'])
+        """Retrieves only the project contributors via projects_pk"""
+        return Contributor.objects.filter(project_id=self.kwargs['projects_pk'])
 
     def get_permissions(self):
         """Add specific permissions for contributor.
@@ -106,7 +106,7 @@ class IssueViewset(MultipleSerializerMixin, BasePermissionViewset, ModelViewSet)
     - MultipleSerializerMixin for action-specific serializers
     - BasePermissionViewset for core author/edit permissions
 
-    Queryset automatically scoped to issues of parent project via project_pk.
+    Queryset automatically scoped to issues of parent project via projects_pk.
 
     Apply specific permissions to child resources for secure access.
     """
@@ -118,11 +118,11 @@ class IssueViewset(MultipleSerializerMixin, BasePermissionViewset, ModelViewSet)
     model = Issue
 
     def get_queryset(self):
-        """Retrieves only the project issues via project_pk.
+        """Retrieves only the project issues via projects_pk.
         Prefetch comments to prevent n+1 query."""
 
         return Issue.objects.filter(
-            project_id=self.kwargs['project_pk']
+            project_id=self.kwargs['projects_pk']
         ).prefetch_related('comments')
 
     def get_permissions(self):
@@ -140,7 +140,7 @@ class CommentViewset(BasePermissionViewset, ModelViewSet):
     Inherits BasePermissionViewset for core author/edit permissions
 
     Queryset automatically scoped to comment of parent issue and project
-    via project_pk and issue_pk.
+    via projects_pk and issues_pk.
 
     Apply specific permissions to child resources for secure access.
     """
@@ -152,10 +152,10 @@ class CommentViewset(BasePermissionViewset, ModelViewSet):
     lookup_field = 'uuid'
 
     def get_queryset(self):
-        """Retrieves only the issue comments via issue_pk and project_pk"""
+        """Retrieves only the issue comments via issues_pk and projects_pk"""
         return Comment.objects.filter(
-            issue__pk=self.kwargs['issue_pk'],
-            issue__project_id=self.kwargs['project_pk'],
+            issue__pk=self.kwargs['issues_pk'],
+            issue__project_id=self.kwargs['projects_pk'],
         )
 
     def get_serializer_class(self):
